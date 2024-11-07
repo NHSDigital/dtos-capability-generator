@@ -4,8 +4,6 @@ ${description}
 
 <h2>Linked L1 Capabilities</h2>
 
-${capabilityLinks}
-
 <table>
     <thead>
         <tr>
@@ -17,3 +15,6 @@ ${capabilityLinks}
         ${tableRows}
     </tbody>
 </table>
+
+<h2>Product Users</h2>
+${productUsers}

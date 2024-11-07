@@ -95,14 +95,15 @@ async function loadExcelData() {
             l0Output = '',
             l1CapabilityAndDescription = '',
             product = '',
-            productDescription = ''
+            productDescription = '',
+            productUsers = ''
         ] = row.values.slice(1).map(getPlainText);
 
         let [l1Name, l1Description] = parseL1Capability(l1CapabilityAndDescription);
         data.push({
             valueStreamStage, stageDescription, stageOutcome,
             l0Capability, l0Description, l0Input, l0Output,
-            l1Name, l1Description, product, productDescription
+            l1Name, l1Description, product, productDescription, productUsers
         });
     });
     return data;
@@ -149,17 +150,21 @@ function transformToProductView(data) {
         if (!productData[item.product]) {
             productData[item.product] = { l1Capabilities: [] };
             productData[item.product].description = item.productDescription.result;
+            let productUsers = String(item.productUsers.result)
+            productUsers = productUsers.split(',').map(item => item.trim()).map(item => `<li>${item}</li>`).join('');
+            productData[item.product].productUsers = `<ul>${productUsers}</ul>`;
         }
         let l1link = await getPageByTitle(item.l1Name);
         if (l1link != null) l1link = l1link._links.webui; 
         let l0link = await getPageByTitle(item.l0Capability);
-        if (l0link != null) l0link = l0link._links.webui; 
+        if (l0link != null) l0link = l0link._links.webui;
+        console.log(item); 
         productData[item.product].l1Capabilities.push({
             name: item.l1Name,
             l1link: l1link,
             valueStreamStage: item.valueStreamStage,
             l0Capability: item.l0Capability,
-            l0link: l0link,
+            l0link: l0link
         });
     });
     return productData;
@@ -205,7 +210,8 @@ async function renderProductContent(product) {
     
     return renderTemplate(template, {
         description: product.description,
-        tableRows
+        tableRows,
+        productUsers: product.productUsers
     });
 }
 
