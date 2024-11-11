@@ -158,7 +158,6 @@ function transformToProductView(data) {
         if (l1link != null) l1link = l1link._links.webui; 
         let l0link = await getPageByTitle(item.l0Capability);
         if (l0link != null) l0link = l0link._links.webui;
-        console.log(item); 
         productData[item.product].l1Capabilities.push({
             name: item.l1Name,
             l1link: l1link,

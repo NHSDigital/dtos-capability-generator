@@ -16,5 +16,5 @@ ${description}
     </tbody>
 </table>
 
-<h2>Product Users</h2>
+<h2><a href="https://nhsd-confluence.digital.nhs.uk/display/DTS/Users+and+Personas">Product Users</a></h2>
 ${productUsers}
