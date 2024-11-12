@@ -54,10 +54,10 @@ async function main() {
         const data = await loadExcelData();
         console.log("Generating value stream data set");
         const valueStreamData = transformToValueStreamView(data);
-        console.log("Generating product data set");
-        const productData = transformToProductView(data);
         console.log("Creating value stream confluence pages");
         await createValueStreamHierarchy(valueStreamData)
+        console.log("Generating product data set");
+        const productData = transformToProductView(data);
         console.log("Creating product confluence pages");
         await createProductHierarchy(productData)
         console.log("done");
