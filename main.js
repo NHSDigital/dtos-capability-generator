@@ -55,7 +55,7 @@ async function main() {
         console.log("Generating value stream data set");
         const valueStreamData = transformToValueStreamView(data);
         console.log("Creating value stream confluence pages");
-        await createValueStreamHierarchy(valueStreamData)
+        //await createValueStreamHierarchy(valueStreamData)
         console.log("Generating product data set");
         const productData = transformToProductView(data);
         console.log("Creating product confluence pages");
@@ -96,14 +96,16 @@ async function loadExcelData() {
             l1CapabilityAndDescription = '',
             product = '',
             productDescription = '',
-            productUsers = ''
+            productUsers = '',
+            productDomain = '',
+            productRootEntity = ''
         ] = row.values.slice(1).map(getPlainText);
 
         let [l1Name, l1Description] = parseL1Capability(l1CapabilityAndDescription);
         data.push({
             valueStreamStage, stageDescription, stageOutcome,
             l0Capability, l0Description, l0Input, l0Output,
-            l1Name, l1Description, product, productDescription, productUsers
+            l1Name, l1Description, product, productDescription, productUsers, productDomain, productRootEntity
         });
     });
     return data;
@@ -153,6 +155,12 @@ function transformToProductView(data) {
             let productUsers = String(item.productUsers.result)
             productUsers = productUsers.split(',').map(item => item.trim()).map(item => `<li>${item}</li>`).join('');
             productData[item.product].productUsers = `<ul>${productUsers}</ul>`;
+            let productDomain = String(item.productDomain.result)
+            productDomain = productDomain.split(',').map(item => item.trim()).map(item => `<li>${item}</li>`).join('');
+            productData[item.product].productDomain = `<ul>${productDomain}</ul>`;
+            let productRootEntity = String(item.productRootEntity.result)
+            productRootEntity = productRootEntity.split(',').map(item => item.trim()).map(item => `<li>${item}</li>`).join('');
+            productData[item.product].productRootEntity = `<ul>${productRootEntity}</ul>`;
         }
         let l1link = await getPageByTitle(item.l1Name);
         if (l1link != null) l1link = l1link._links.webui; 
@@ -167,6 +175,18 @@ function transformToProductView(data) {
         });
     });
     return productData;
+}
+
+function addUniqueValues(existingValues, newValues) {
+    // Split the existing values and new values into arrays, trimming whitespace
+    const existingArray = existingValues ? existingValues.split(',').map(item => item.trim()) : [];
+    const newArray = newValues ? newValues.split(',').map(item => item.trim()) : [];
+
+    // Filter the new values to include only those not already in the existing values
+    const uniqueNewValues = newArray.filter(value => !existingArray.includes(value));
+
+    // Combine the unique new values with the existing values
+    return [...existingArray, ...uniqueNewValues].join(', ');
 }
 
 // Step 3: Rendering Functions
@@ -210,7 +230,9 @@ async function renderProductContent(product) {
     return renderTemplate(template, {
         description: product.description,
         tableRows,
-        productUsers: product.productUsers
+        productUsers: product.productUsers,
+        domain: product.productDomain,
+        rootEntity: product.productRootEntity
     });
 }
 
