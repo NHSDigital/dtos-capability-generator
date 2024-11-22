@@ -1,9 +1,13 @@
 const axios = require('axios');
-const fs = require('fs').promises;
 const ExcelJS = require('exceljs');
+const fs = require('fs');
+const path = require('path');
+const xml2js = require('xml2js');
+
 const readline = require('readline');
 
-const filePath = 'data/BusinessCapabilitiesv0.1.xlsx';
+const filePath = 'data/BusinessCapabilitiesv0.3.xlsx';
+const archLocation = '/Users/leegath/Documents/Archi/model-repository/dtos-architecture-blueprint'
 const confluenceBaseUrl = 'https://nhsd-confluence.digital.nhs.uk';
 const spaceKey = 'DTS';
 
@@ -50,17 +54,24 @@ rl.question(
 
 async function main() {
     try {
-        console.log("Loading data from spreadsheet");
-        const data = await loadExcelData();
+        //console.log("Loading data from spreadsheet");
+        //const data = await loadExcelData();
+
+        const data = await loadArchiModelFromFolder(archLocation);
+        console.log("Transforming Archi model data...");
+        const transformedData = transformArchiData(data);
+        console.log(transformedData)
+        /*
         console.log("Generating value stream data set");
         const valueStreamData = transformToValueStreamView(data);
         console.log("Creating value stream confluence pages");
-        //await createValueStreamHierarchy(valueStreamData)
+        await createValueStreamHierarchy(valueStreamData)
         console.log("Generating product data set");
         const productData = transformToProductView(data);
         console.log("Creating product confluence pages");
         await createProductHierarchy(productData)
         console.log("done");
+        */
     } catch (error) {
         console.error('Error:', error.message);
     }
@@ -74,6 +85,7 @@ async function loadTemplate(filename) {
         console.error(`Error loading template "${filename}":`, error.message);
     }
 }
+
 
 // Step 2: Load and Process Data
 async function loadExcelData() {
@@ -268,9 +280,6 @@ async function createProductHierarchy(data) {
     }
 }
 
-
-
-
 // Confluence API functions and helpers remain the same...
 
 function getPlainText(cell) {
@@ -362,4 +371,119 @@ async function createOrUpdatePage(title, parentId, content) {
             console.error(`Failed to create page "${title}":`, error.response?.data || error.message);
         }
     }
+}
+
+async function loadArchiModelFromFolder(folderPath) {
+    const xmlFiles = [];
+
+    // Recursively find XML files in the folder
+    function findXmlFiles(directory) {
+        const files = fs.readdirSync(directory);
+
+        files.forEach((file) => {
+            const fullPath = path.join(directory, file);
+            const stats = fs.statSync(fullPath);
+
+            if (stats.isDirectory()) {
+                findXmlFiles(fullPath);
+            } else if (path.extname(fullPath) === '.xml') {
+                xmlFiles.push(fullPath);
+            }
+        });
+    }
+
+    findXmlFiles(folderPath);
+
+    // Parse and process each XML file
+    const valueStreams = [];
+    const relationships = [];  
+    const applicationComponents = [];
+    const capabilities = [];
+     
+    for (const xmlFile of xmlFiles) {
+        const xmlContent = fs.readFileSync(xmlFile, 'utf8');
+        const parser = new xml2js.Parser();
+        const parsed = await parser.parseStringPromise(xmlContent);
+        
+        // Identify and classify XML types
+        if (parsed['archimate:ApplicationComponent']) {
+            applicationComponents.push(parsed['archimate:ApplicationComponent']);
+        } 
+        else if (parsed['archimate:Capability']) {
+            capabilities.push(parsed['archimate:Capability']);
+        } 
+        else if (parsed['archimate:AssociationRelationship']) {
+            relationships.push(parsed['archimate:AssociationRelationship']);
+        }
+        else if (parsed['archimate:ValueStream']) {
+            valueStreams.push(parsed['archimate:ValueStream']);
+        }
+    }
+
+    return { applicationComponents, capabilities, relationships, valueStreams };
+}
+
+
+// Transform data into a unified structure
+function transformArchiData(data) {
+    const { applicationComponents, capabilities, relationships } = data;
+
+    // Transform Application Components
+    const transformedComponents = applicationComponents.map((component) => ({
+        id: component.$.id,
+        name: component.$.name,
+        description: component.$.documentation || '',
+    }));
+
+    // Transform Capabilities
+    const transformedCapabilities = capabilities.map((capability) => ({
+        id: capability.$.id,
+        name: capability.$.name,
+        description: capability.$.documentation || '',
+    }));
+
+    // Transform Relationships
+    const transformedRelationships = relationships.map((relationship) => ({
+        id: relationship.$.id,
+        source: {
+            type: relationship.source[0].$.type,
+            href: relationship.source[0].$.href,
+        },
+        target: {
+            type: relationship.target[0].$.type,
+            href: relationship.target[0].$.href,
+        },
+    }));
+
+    return createHierarchy(transformedCapabilities, transformedRelationships);
+}
+
+function createHierarchy(capabilities, relationships) {
+    const capabilityMap = {};
+
+    // Initialize all capabilities in the map
+    capabilities.forEach((capability) => {
+        capabilityMap[capability.id] = { ...capability, children: [] };
+    });
+
+    // Build parent-child relationships based on the transformedRelationships
+    relationships.forEach((relationship) => {
+        const { source, target } = relationship;
+        if (source.type === "archimate:Capability" && target.type === "archimate:Capability") {
+            const parent = capabilityMap[source.href.split('#')[1]]; // Extract ID from href
+            const child = capabilityMap[target.href.split('#')[1]]; // Extract ID from href
+
+            if (parent && child) {
+                parent.children.push(child);
+            }
+        }
+    });
+
+    // Find top-level capabilities (those not referenced as targets)
+    const referencedIds = new Set(relationships.map((rel) => rel.target.href.split('#')[1]));
+    const topLevelCapabilities = Object.values(capabilityMap).filter(
+        (capability) => !referencedIds.has(capability.id)
+    );
+
+    return topLevelCapabilities;
 }
