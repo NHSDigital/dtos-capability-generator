@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "axios": "^1.7.7",
+    "exceljs": "^4.4.0",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7",
+    "xml2js": "^0.6.2"
+  }
+}
