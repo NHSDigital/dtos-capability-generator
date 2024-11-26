@@ -8,7 +8,6 @@ ${description}
     <thead>
         <tr>
             <th>L1 Capability</th>
-            <th>L0 Capability</th>
         </tr>
     </thead>
     <tbody>
