@@ -1,16 +1,18 @@
 const axios = require('axios');
-const ExcelJS = require('exceljs');
 const fs = require('fs').promises;
 const path = require('path');
 const xml2js = require('xml2js');
 
 const readline = require('readline');
 const { constrainedMemory } = require('process');
+const { table } = require('console');
 
-const filePath = 'data/BusinessCapabilitiesv0.3.xlsx';
 const archLocation = '/Users/leegathercole/Documents/Archi/model-repository/dtos-architecture-blueprint'
 const confluenceBaseUrl = 'https://nhsd-confluence.digital.nhs.uk';
 const spaceKey = 'DTS';
+let productsParentId = 944175321;
+let capabilitiesParentId = 944175319;
+let pagePrefix = "##";
 
 const authToken = process.argv[2];
 
@@ -55,21 +57,13 @@ rl.question(
 
 async function main() {
     try {
-        //console.log("Loading data from spreadsheet");
-        //const data = await loadExcelData();
-
         const data = await loadArchiModelFromFolder(archLocation);
         console.log("Transforming Archi model data...");
-        const transformedData = transformArchiData(data);
-        
-        //console.log("Generating value stream data set");
-        //const valueStreamData = transformToValueStreamView(data);
+        const {valueStreamMap, productMap} = await transformArchiData(data);
         console.log("Creating value stream confluence pages");
-        await createValueStreamPagesFromHierarchy(transformedData)
-        //console.log("Generating product data set");
-        //const productData = transformToProductView(data);
-        //console.log("Creating product confluence pages");
-        //await createProductHierarchy(productData)
+        await createValueStreamPagesFromHierarchy(valueStreamMap)
+        console.log("Creating product confluence pages");
+        await createProductPagesFromHierarchy(productMap)
         console.log("done");
         
     } catch (error) {
@@ -84,121 +78,6 @@ async function loadTemplate(filename) {
     } catch (error) {
         console.error(`Error loading template "${filename}":`, error.message);
     }
-}
-
-
-// Step 2: Load and Process Data
-async function loadExcelData() {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
-    const worksheet = workbook.getWorksheet("Capability Map Flattened");
-
-    const data = [];
-    worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
-
-        const [
-            valueStreamStage = '',
-            stageDescription = '',
-            stageOutcome = '',
-            l0Capability = '',
-            l0Description = '',
-            l0Input = '',
-            l0Output = '',
-            l1CapabilityAndDescription = '',
-            product = '',
-            productDescription = '',
-            productUsers = '',
-            productDomain = '',
-            productRootEntity = ''
-        ] = row.values.slice(1).map(getPlainText);
-
-        let [l1Name, l1Description] = parseL1Capability(l1CapabilityAndDescription);
-        data.push({
-            valueStreamStage, stageDescription, stageOutcome,
-            l0Capability, l0Description, l0Input, l0Output,
-            l1Name, l1Description, product, productDescription, productUsers, productDomain, productRootEntity
-        });
-    });
-    return data;
-}
-
-function parseL1Capability(l1CapabilityAndDescription) {
-    if (l1CapabilityAndDescription && l1CapabilityAndDescription.includes(':')) {
-        return l1CapabilityAndDescription.split(/:(.*)/).map(s => s.trim());
-    }
-    return [l1CapabilityAndDescription, ''];
-}
-
-function transformToValueStreamView(data) {
-    const valueStreamData = {};
-    data.forEach(item => {
-        if (!valueStreamData[item.valueStreamStage]) {
-            valueStreamData[item.valueStreamStage] = {
-                stageDescription: item.stageDescription,
-                stageOutcome: item.stageOutcome,
-                l0Capabilities: {}
-            };
-        }
-        const stage = valueStreamData[item.valueStreamStage];
-        if (!stage.l0Capabilities[item.l0Capability]) {
-            stage.l0Capabilities[item.l0Capability] = {
-                description: item.l0Description,
-                input: item.l0Input,
-                output: item.l0Output,
-                l1Capabilities: []
-            };
-        }
-        stage.l0Capabilities[item.l0Capability].l1Capabilities.push({
-            name: item.l1Name,
-            description: item.l1Description,
-            product: item.product
-        });
-    });
-    return valueStreamData;
-}
-
-function transformToProductView(data) {
-    const productData = {};
-    data.forEach(async item => {
-        if (!productData[item.product]) {
-            productData[item.product] = { l1Capabilities: [] };
-            productData[item.product].description = item.productDescription.result;
-            let productUsers = String(item.productUsers.result)
-            productUsers = productUsers.split(',').map(item => item.trim()).map(item => `<li>${item}</li>`).join('');
-            productData[item.product].productUsers = `<ul>${productUsers}</ul>`;
-            let productDomain = String(item.productDomain.result)
-            productDomain = productDomain.split(',').map(item => item.trim()).map(item => `<li>${item}</li>`).join('');
-            productData[item.product].productDomain = `<ul>${productDomain}</ul>`;
-            let productRootEntity = String(item.productRootEntity.result)
-            productRootEntity = productRootEntity.split(',').map(item => item.trim()).map(item => `<li>${item}</li>`).join('');
-            productData[item.product].productRootEntity = `<ul>${productRootEntity}</ul>`;
-        }
-        let l1link = await getPageByTitle(item.l1Name);
-        if (l1link != null) l1link = l1link._links.webui; 
-        let l0link = await getPageByTitle(item.l0Capability);
-        if (l0link != null) l0link = l0link._links.webui;
-        productData[item.product].l1Capabilities.push({
-            name: item.l1Name,
-            l1link: l1link,
-            valueStreamStage: item.valueStreamStage,
-            l0Capability: item.l0Capability,
-            l0link: l0link
-        });
-    });
-    return productData;
-}
-
-function addUniqueValues(existingValues, newValues) {
-    // Split the existing values and new values into arrays, trimming whitespace
-    const existingArray = existingValues ? existingValues.split(',').map(item => item.trim()) : [];
-    const newArray = newValues ? newValues.split(',').map(item => item.trim()) : [];
-
-    // Filter the new values to include only those not already in the existing values
-    const uniqueNewValues = newArray.filter(value => !existingArray.includes(value));
-
-    // Combine the unique new values with the existing values
-    return [...existingArray, ...uniqueNewValues].join(', ');
 }
 
 // Step 3: Rendering Functions
@@ -235,9 +114,12 @@ async function renderL1Content(data) {
 
 async function renderProductContent(product) {
     const template = await loadTemplate('templates/productTemplate.md');
-    const tableRows = product.l1Capabilities
-        .map(cap => `<tr><td><a href='${cap.l1link}'>${cap.name}</a></td><td><a href='${cap.l0link}'>${cap.l0Capability}</a></td></tr>`)
-        .join('');    
+    console.debug('Capabilities L1: ')
+    let tableRows = "";    
+    
+    for (const L1capability of product.capabilities) {
+        tableRows = tableRows + `<tr><td><a href='${L1capability.href}'>${L1capability.name}</a></td></tr>`    
+    }
     
     return renderTemplate(template, {
         description: product.description,
@@ -250,9 +132,8 @@ async function renderProductContent(product) {
 
 
 async function createValueStreamPagesFromHierarchy(hierarchy, parentId = null) {
-    const basePageId = 944171792
-    
-    
+    const basePageId = capabilitiesParentId    
+    console.log(hierarchy);
     for (const [key, value] of Object.entries(hierarchy)) {
         console.debug(`Key: ${key}`);
         console.debug(`Name: ${value.name}`);
@@ -275,50 +156,21 @@ async function createValueStreamPagesFromHierarchy(hierarchy, parentId = null) {
       }
 }
 
-// Step 4: Confluence API Integration
-async function createValueStreamHierarchy(data) {
-    //const basePageId = 937823228
-    const basePageId = 944171792
-    
-    for (const [key, item] of Object.entries(data)) {
-        let content = await renderStageContent(item);
-        const pageId = await createOrUpdatePage(key, basePageId, content);
-
-        if (pageId && item.l0Capabilities) {
-            for (const [capability, details] of Object.entries(item.l0Capabilities)) {
-                content = await renderL0Content(details);
-                const l0pageId = await createOrUpdatePage(capability, pageId, content);
-
-                if (details.l1Capabilities) {
-                    for (const l1Cap of details.l1Capabilities) {
-                        content = await renderL1Content(l1Cap);
-                        await createOrUpdatePage(l1Cap.name, l0pageId, content);
-                    }
-                }
-            }
-        }
+async function createProductPagesFromHierarchy(hierarchy, parentId = null) {
+    const basePageId = productsParentId    
+    for (const [key, value] of Object.entries(hierarchy)) {
+        console.debug(`Key: ${key}`);
+        console.debug(`Name: ${value.name}`);
+        console.debug(`Description: ${value.description}`);
+        console.debug('Products:');
+        let content = await renderProductContent(value);
+        console.debug(`Page content: ${content}`);
+        const pageId = await createOrUpdatePage(value.name, basePageId, content);
     }
-}
-
-
-async function createProductHierarchy(data) {
-    const basePageId = 937823239
-    for (const [key, item] of Object.entries(data)) {
-        let content = await renderProductContent(item);
-        const pageId = await createOrUpdatePage(key, basePageId, content);
-    }
-}
-
-// Confluence API functions and helpers remain the same...
-
-function getPlainText(cell) {
-    if (cell && typeof cell === 'object' && cell.richText) {
-        return cell.richText.map(segment => segment.text).join('');
-    }
-    return cell;
 }
 
 async function getPageByTitle(title) {
+    console.debug(`Get href for page: ${title}`);
     const url = `${confluenceBaseUrl}/rest/api/content`;
     const headers = {
         'Authorization': `Bearer ${authToken}`,
@@ -344,7 +196,7 @@ async function getPageByTitle(title) {
 // Function to create or update a Confluence page
 async function createOrUpdatePage(title, parentId, content) {
     //Temp for testing
-    title = '#' + title;
+    title = pagePrefix + title;
     const existingPage = await getPageByTitle(title);
     if (existingPage) {
         console.log('Updating page - ' + title);
@@ -430,7 +282,7 @@ async function loadArchiModelFromFolder(folderPath) {
     // Parse and process each XML file
     const valueStreams = [];
     const relationships = [];  
-    const applicationComponents = [];
+    const products = [];
     const capabilities = [];
     const parser = new xml2js.Parser();
 
@@ -440,7 +292,7 @@ async function loadArchiModelFromFolder(folderPath) {
         
         // Identify and classify XML types
         if (parsed['archimate:ApplicationComponent']) {
-            applicationComponents.push(parsed['archimate:ApplicationComponent']);
+            products.push(parsed['archimate:ApplicationComponent']);
         } 
         else if (parsed['archimate:Capability']) {
             capabilities.push(parsed['archimate:Capability']);
@@ -455,7 +307,7 @@ async function loadArchiModelFromFolder(folderPath) {
             valueStreams.push(parsed['archimate:ValueStream']);
         }
     }
-    return { applicationComponents, capabilities, relationships, valueStreams };
+    return { products, capabilities, relationships, valueStreams };
 }
 
 function extractProperties(properties, field) {
@@ -470,25 +322,30 @@ function extractProperties(properties, field) {
 }
 
 // Transform data into a unified structure
-function transformArchiData(data) {
-    const { applicationComponents, capabilities, relationships, valueStreams } = data;
+async function transformArchiData(data) {
+    const { products, capabilities, relationships, valueStreams } = data;
 
     // Transform Application Components
-    const transformedComponents = applicationComponents.map((component) => ({
+    const transformedProducts = products.map((component) => ({
         id: component.$.id,
         name: component.$.name,
         description: component.$.documentation || '',
     }));
 
     // Transform Capabilities
-    const transformedCapabilities = capabilities.map((capability) => ({
-        id: capability.$.id,
-        name: capability.$.name,
-        description: capability.$.documentation || '',
-        input: extractProperties(capability.properties, 'Input'),
-        output: extractProperties(capability.properties, 'Output'), 
-    }));
-
+    const transformedCapabilities = await Promise.all(
+        capabilities.map(async (capability) => {
+            const page = await getPageByTitle(capability.$.name); // Await async call
+            return {
+                id: capability.$.id,
+                name: capability.$.name,
+                description: capability.$.documentation || '',
+                input: extractProperties(capability.properties, 'Input'),
+                output: extractProperties(capability.properties, 'Output'),
+                href: page && page._links ? page._links.webui : null
+            };
+        })
+    );
     // Transform Value Streams
     const transformedValuestreams = valueStreams.map((valueStream) => ({
         id: valueStream.$.id,
@@ -510,13 +367,13 @@ function transformArchiData(data) {
             href: relationship.target[0].$.href,
         },
     }));
-    return createHierarchy(transformedValuestreams, transformedCapabilities, transformedRelationships);
+    return createHierarchy(transformedValuestreams, transformedCapabilities, transformedRelationships, transformedProducts);
 }
 
-function createHierarchy(valueStreams, capabilities, relationships) {
+function createHierarchy(valueStreams, capabilities, relationships, products) {
     const capabilityMap = {};
     const valueStreamMap = [];
-
+    const productMap = {};
 
     valueStreams.forEach((valueStream) => {
         valueStreamMap[valueStream.id] = { ...valueStream, capabilities: [] };
@@ -525,6 +382,10 @@ function createHierarchy(valueStreams, capabilities, relationships) {
     // Initialize all capabilities in the map
     capabilities.forEach((capability) => {
         capabilityMap[capability.id] = { ...capability, children: [] };
+    });
+
+    products.forEach((product) => {
+        productMap[product.id] = { ...product, capabilities: [] };
     });
 
     // Build parent-child relationships based on the transformedRelationships
@@ -552,5 +413,20 @@ function createHierarchy(valueStreams, capabilities, relationships) {
             }
         }
     });
-    return valueStreamMap;
+
+
+    //Do it again, but this time for products
+    relationships.forEach((relationship) => {
+        const { source, target } = relationship;
+            
+        if (source.type === "ApplicationComponent" && target.type === "Capability") {
+            const product = productMap[source.href.split('#')[1]];
+            const capability = capabilityMap[target.href.split('#')[1]]; // Extract ID from href
+            if (product && capability) {
+                product.capabilities.push(capability);
+            }
+        }
+    });
+
+    return {valueStreamMap, productMap};
 }
