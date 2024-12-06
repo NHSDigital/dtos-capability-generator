@@ -17,9 +17,8 @@ ${description}
 
 <h2>Product Container Diagram</h2>
 <ac:image ac:align="center">
-  <ri:attachment ri:filename="{containerDiagram}" />
+  <ri:attachment ri:filename="${containerDiagram}" />
 </ac:image>
-
 
 <h2>Product Data Domain</h2>
 
@@ -32,7 +31,3 @@ ${domain}
 <p>The core objects of the data domain that are authored by the product</p>
 
 ${rootEntity}
-
-<h2><a href="https://nhsd-confluence.digital.nhs.uk/display/DTS/Users+and+Personas">Product Users</a></h2>
-${productUsers}
-

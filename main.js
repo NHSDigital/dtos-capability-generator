@@ -77,7 +77,7 @@ async function main() {
     const { valueStreamMap, productMap } = await transformArchiData(data);
 
     console.log("Creating Value Stream Confluence Pages...");
-    //await createValueStreamHierarchyPages(valueStreamMap, CAPABILITIES_PARENT_ID, renderStageContent, renderL0Content, renderL1Content);
+    await createValueStreamHierarchyPages(valueStreamMap, CAPABILITIES_PARENT_ID, renderStageContent, renderL0Content, renderL1Content);
 
     console.log("Creating Top Level Product Confluence Page...");
     await createProductTopPage(TOP_LEVEL_PARENT_ID);
@@ -299,7 +299,7 @@ async function renderProductContent(product) {
         productUsers: product.productUsers,
         domain: product.productDomain,
         rootEntity: product.productRootEntity,
-        containerDiagram: product.containerDiagram
+        containerDiagram: product.containerDiagram.split('/').pop()
     });
 }
 
@@ -331,18 +331,19 @@ async function createProductTopPage(parentId) {
 
 async function createProductHierarchyPages(hierarchy, parentId, renderProduct) {
     for (const [key, item] of Object.entries(hierarchy)) {
-        const stringWithSpaces = "Remove all spaces in this string.";
+        const stringWithSpaces = item.name;
         const titleWithoutSpaces = stringWithSpaces.replace(/\s+/g, '');
-        item.containerDiagram = `structurizr-${titleWithoutSpaces}.png`;
+        item.containerDiagram = `dtos-solution-architecture/images/${titleWithoutSpaces}.png`;
+        await uploadAttachment(item.name, item.containerDiagram);
         const stageContent = await renderProduct(item);
         const pageId = await createOrUpdatePage(item.name, parentId, stageContent);
-        await uploadAttachment(item.name, item.containerDiagram)
+        
     }
 }
 
 // Confluence API Functions
 async function getPageByTitle(title) {
-    const url = `${CONFLUENCE_BASE_URL}/rest/api/content`;
+    const url = `${CONFLUENCE_BASE_URL}/rest/api/content/`;
     const headers = { Authorization: `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' };
 
     try {
@@ -351,7 +352,7 @@ async function getPageByTitle(title) {
             params: {
                 title,
                 spaceKey: SPACE_KEY,
-                expand: 'version',
+                expand: 'version,body.storage',
             },
         });
         return response.data.results[0] || null; // Return the first matching page, if any
@@ -364,7 +365,6 @@ async function getPageByTitle(title) {
 async function createOrUpdatePage(title, parentId, content) {
     const pageTitle = `${PAGE_PREFIX}${title}`;
     const existingPage = await getPageByTitle(pageTitle);
-
     const url = existingPage
         ? `${CONFLUENCE_BASE_URL}/rest/api/content/${existingPage.id}`
         : `${CONFLUENCE_BASE_URL}/rest/api/content`;
@@ -402,7 +402,6 @@ async function createOrUpdatePage(title, parentId, content) {
 async function uploadAttachment(title,filePath) {
     const pageTitle = `${PAGE_PREFIX}${title}`;
     const existingPage = await getPageByTitle(pageTitle);
-
     const url = existingPage
         ? `${CONFLUENCE_BASE_URL}/rest/api/content/${existingPage.id}`
         : `${CONFLUENCE_BASE_URL}/rest/api/content`;
@@ -410,6 +409,17 @@ async function uploadAttachment(title,filePath) {
     if (existingPage) {
         //if a file with the same name already exists then delete it
         try {
+            const body = {
+                type: 'page',
+                title: pageTitle,
+                space: { key: SPACE_KEY },
+                body: {
+                    storage: {
+                        representation: 'storage',
+                    },
+                },
+            };
+        
             console.log(`Checking for existing attachments on page: ${pageTitle}`);
 
             // Step 1: Check for existing attachments with the same name
@@ -453,18 +463,16 @@ async function uploadAttachment(title,filePath) {
                 'Authorization': `Bearer ${AUTH_TOKEN}`,     
                 'X-Atlassian-Token': 'nocheck',
             };
-            
+            // Post attachement
             const response = await axios.post(
                 `${url}/child/attachment`,
                 formData,
                 {headers}
             );
-          
-            console.log(response); // Return attachment name
         } 
         catch (error) {
-            console.error("Error uploading image:", error.response);
-            throw error;
+            console.error("Error uploading image:", error);
+            
         }
     }
     else{
