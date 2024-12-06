@@ -15,6 +15,12 @@ ${description}
     </tbody>
 </table>
 
+<h2>Product Container Diagram</h2>
+<ac:image ac:align="center">
+  <ri:attachment ri:filename="{containerDiagram}" />
+</ac:image>
+
+
 <h2>Product Data Domain</h2>
 
 <p>The data domain to which the product is significantly aligned.</p>
