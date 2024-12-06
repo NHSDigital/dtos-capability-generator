@@ -1,13 +1,16 @@
 const axios = require('axios');
-const fs = require('fs').promises;
+const fsPromises = require('fs').promises;
+const fs = require('fs');
 const path = require('path');
 const xml2js = require('xml2js');
 const readline = require('readline');
+const FormData = require('form-data');
 
 // Default Constants
 let PAGE_PREFIX = "##";
 let CAPABILITIES_PARENT_ID = 944175319; // Default parent ID for capabilities
 let PRODUCTS_PARENT_ID = 944175321; // Default parent ID for products
+let TOP_LEVEL_PARENT_ID = 944171792;
 
 const CONFLUENCE_BASE_URL = 'https://nhsd-confluence.digital.nhs.uk';
 const SPACE_KEY = 'DTS';
@@ -19,9 +22,10 @@ const ARCHI_LOCATION = process.argv[3]; // Get the Archi location from the third
 
 // Update Constants for Production
 if (isProd) {
-    PAGE_PREFIX = "PROD##";
+    PAGE_PREFIX = "";
     CAPABILITIES_PARENT_ID = 123456789; // Replace with your production parent ID for capabilities
     PRODUCTS_PARENT_ID = 987654321; // Replace with your production parent ID for products
+    TOP_LEVEL_PARENT_ID = 914072849;
 }
 
 // Display Help and Validate Inputs
@@ -75,6 +79,10 @@ async function main() {
     console.log("Creating Value Stream Confluence Pages...");
     await createValueStreamHierarchyPages(valueStreamMap, CAPABILITIES_PARENT_ID, renderStageContent, renderL0Content, renderL1Content);
 
+    console.log("Creating Top Level Product Confluence Page...");
+    await createProductTopPage(TOP_LEVEL_PARENT_ID);
+
+
     console.log("Creating Product Confluence Pages...");
     await createProductHierarchyPages(productMap, PRODUCTS_PARENT_ID, renderProductContent);
 
@@ -92,7 +100,7 @@ async function loadArchiModelFromFolder(folderPath) {
     const parser = new xml2js.Parser();
 
     for (const xmlFile of xmlFiles) {
-        const xmlContent = await fs.readFile(xmlFile, 'utf8');
+        const xmlContent = await fsPromises.readFile(xmlFile, 'utf8');
         const parsed = await parser.parseStringPromise(xmlContent);
 
         if (parsed['archimate:ApplicationComponent']) {
@@ -118,7 +126,7 @@ async function loadArchiModelFromFolder(folderPath) {
 }
 
 async function findXmlFiles(directory) {
-    const files = await fs.readdir(directory, { withFileTypes: true });
+    const files = await fsPromises.readdir(directory, { withFileTypes: true });
     const xmlFiles = [];
 
     for (const file of files) {
@@ -146,12 +154,13 @@ function extractProperties(properties, field) {
 // Transform Data
 async function transformArchiData(data) {
     const { products, capabilities, relationships, valueStreams } = data;
+    console.debug("About to transform products");
     const transformedProducts = products.map((component) => ({
         id: component.$.id,
         name: component.$.name,
         description: component.$.documentation || '',
     }));
-
+    console.debug("About to transform capabilities");
     const transformedCapabilities = await Promise.all(
         capabilities.map(async (capability) => {
             const page = await getPageByTitle(capability.$.name);
@@ -165,7 +174,7 @@ async function transformArchiData(data) {
             };
         })
     );
-
+    console.debug("About to transform value streams");
     const transformedValueStreams = valueStreams.map((valueStream) => ({
         id: valueStream.$.id,
         name: valueStream.$.name,
@@ -173,6 +182,7 @@ async function transformArchiData(data) {
         outcome: extractProperties(valueStream.properties, 'Outcome'),
     }));
 
+    console.debug("About to transform relationships");
     const transformedRelationships = relationships.map((relationship) => ({
         id: relationship.$.id,
         source: parseReference(relationship.source[0]),
@@ -191,6 +201,7 @@ function parseReference(reference) {
 }
 
 function createHierarchy(valueStreams, capabilities, relationships, products) {
+    console.log("Inside create hierarchy");
     const capabilityMap = createMap(capabilities);
     const valueStreamMap = createMap(valueStreams);
     const productMap = createMap(products);
@@ -230,7 +241,7 @@ function linkRelationships(relationships, capabilityMap, valueStreamMap, product
 
 async function loadTemplate(filename) {
     try {
-        return await fs.readFile(filename, 'utf8');
+        return await fsPromises.readFile(filename, 'utf8');
     } catch (error) {
         console.error(`Error loading template "${filename}":`, error.message);
     }
@@ -269,6 +280,11 @@ async function renderL1Content(data) {
     });
 }
 
+async function renderTopProductContent(product) {
+    const template = await loadTemplate('templates/productTopLevelTemplate.md');
+    return renderTemplate(template, {});
+}
+
 async function renderProductContent(product) {
     const template = await loadTemplate('templates/productTemplate.md');
     let tableRows = "";    
@@ -282,7 +298,8 @@ async function renderProductContent(product) {
         tableRows,
         productUsers: product.productUsers,
         domain: product.productDomain,
-        rootEntity: product.productRootEntity
+        rootEntity: product.productRootEntity,
+        containerDiagram: product.containerDiagram.split('/').pop()
     });
 }
 
@@ -304,16 +321,29 @@ async function createValueStreamHierarchyPages(hierarchy, parentId, renderStage,
     }
 }
 
+async function createProductTopPage(parentId) {
+    const content = await renderTopProductContent();
+    const pageId = await createOrUpdatePage("Test-Products", parentId, content);
+    //For the top page, going to upload the high level context diagram
+    await uploadAttachment(`${PAGE_PREFIX}Products`, "dtos-solution-architecture/images/structurizr-dtosSystemContext.png")
+}
+
+
 async function createProductHierarchyPages(hierarchy, parentId, renderProduct) {
     for (const [key, item] of Object.entries(hierarchy)) {
+        const stringWithSpaces = item.name;
+        const titleWithoutSpaces = stringWithSpaces.replace(/\s+/g, '');
+        item.containerDiagram = `dtos-solution-architecture/images/${titleWithoutSpaces}.png`;
+        await uploadAttachment(item.name, item.containerDiagram);
         const stageContent = await renderProduct(item);
         const pageId = await createOrUpdatePage(item.name, parentId, stageContent);
+        
     }
 }
 
 // Confluence API Functions
 async function getPageByTitle(title) {
-    const url = `${CONFLUENCE_BASE_URL}/rest/api/content`;
+    const url = `${CONFLUENCE_BASE_URL}/rest/api/content/`;
     const headers = { Authorization: `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' };
 
     try {
@@ -322,7 +352,7 @@ async function getPageByTitle(title) {
             params: {
                 title,
                 spaceKey: SPACE_KEY,
-                expand: 'version',
+                expand: 'version,body.storage',
             },
         });
         return response.data.results[0] || null; // Return the first matching page, if any
@@ -335,7 +365,6 @@ async function getPageByTitle(title) {
 async function createOrUpdatePage(title, parentId, content) {
     const pageTitle = `${PAGE_PREFIX}${title}`;
     const existingPage = await getPageByTitle(pageTitle);
-
     const url = existingPage
         ? `${CONFLUENCE_BASE_URL}/rest/api/content/${existingPage.id}`
         : `${CONFLUENCE_BASE_URL}/rest/api/content`;
@@ -365,6 +394,88 @@ async function createOrUpdatePage(title, parentId, content) {
         console.log(`${existingPage ? 'Updated' : 'Created'} page: ${pageTitle}`);
         return response.data.id;
     } catch (error) {
+        console.log(error);
         console.error(`Error ${existingPage ? 'updating' : 'creating'} page "${pageTitle}":`, error.message);
+    }
+}
+
+async function uploadAttachment(title,filePath) {
+    const pageTitle = `${PAGE_PREFIX}${title}`;
+    const existingPage = await getPageByTitle(pageTitle);
+    const url = existingPage
+        ? `${CONFLUENCE_BASE_URL}/rest/api/content/${existingPage.id}`
+        : `${CONFLUENCE_BASE_URL}/rest/api/content`;
+
+    if (existingPage) {
+        //if a file with the same name already exists then delete it
+        try {
+            const body = {
+                type: 'page',
+                title: pageTitle,
+                space: { key: SPACE_KEY },
+                body: {
+                    storage: {
+                        representation: 'storage',
+                    },
+                },
+            };
+        
+            console.log(`Checking for existing attachments on page: ${pageTitle}`);
+
+            // Step 1: Check for existing attachments with the same name
+            const attachmentListResponse = await axios.get(
+                `${url}/child/attachment`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${AUTH_TOKEN}`,
+                    },
+                }
+            );
+
+            const existingAttachments = attachmentListResponse.data.results;
+            const existingAttachment = existingAttachments.find(
+                (attachment) => attachment.title === filePath.split('/').pop()
+            );
+
+            if (existingAttachment) {
+                // Step 2: Delete the existing attachment if found
+                console.log(`Existing attachment found: ${existingAttachment.title}. Deleting it.`);
+                await axios.delete(
+                    `${CONFLUENCE_BASE_URL}/rest/api/content/${existingAttachment.id}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${AUTH_TOKEN}`,
+                        },
+                    }
+                );
+                console.log(`Attachment ${existingAttachment.title} deleted.`);
+            }
+        
+            const fileStream = fs.createReadStream(filePath);
+            const formData = new FormData();
+            formData.append("file", fileStream, {
+                filename: filePath.split('/').pop(),
+                contentType: "application/octet-stream", // Adjust based on file type
+            });
+        
+            const headers = {
+                ...formData.getHeaders(), // FormData headers
+                'Authorization': `Bearer ${AUTH_TOKEN}`,     
+                'X-Atlassian-Token': 'nocheck',
+            };
+            // Post attachement
+            const response = await axios.post(
+                `${url}/child/attachment`,
+                formData,
+                {headers}
+            );
+        } 
+        catch (error) {
+            console.error("Error uploading image:", error);
+            
+        }
+    }
+    else{
+        console.log('Unable to upload attachment because page doesnt yet exist, re-run again');
     }
 }
