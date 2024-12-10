@@ -82,7 +82,6 @@ async function main() {
     console.log("Creating Top Level Product Confluence Page...");
     await createProductTopPage(TOP_LEVEL_PARENT_ID);
 
-
     console.log("Creating Product Confluence Pages...");
     await createProductHierarchyPages(productMap, PRODUCTS_PARENT_ID, renderProductContent);
 
@@ -323,9 +322,9 @@ async function createValueStreamHierarchyPages(hierarchy, parentId, renderStage,
 
 async function createProductTopPage(parentId) {
     const content = await renderTopProductContent();
-    const pageId = await createOrUpdatePage("Test-Products", parentId, content);
+    const pageId = await createOrUpdatePage("Products", parentId, content);
     //For the top page, going to upload the high level context diagram
-    await uploadAttachment(`${PAGE_PREFIX}Products`, "dtos-solution-architecture/images/structurizr-dtosSystemContext.png")
+    await uploadAttachment("Products", "dtos-solution-architecture/images/dtosSystemContext.png")
 }
 
 
