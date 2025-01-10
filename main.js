@@ -23,8 +23,8 @@ const ARCHI_LOCATION = process.argv[3]; // Get the Archi location from the third
 // Update Constants for Production
 if (isProd) {
     PAGE_PREFIX = "";
-    CAPABILITIES_PARENT_ID = 123456789; // Replace with your production parent ID for capabilities
-    PRODUCTS_PARENT_ID = 987654321; // Replace with your production parent ID for products
+    CAPABILITIES_PARENT_ID = 937823228; // Replace with your production parent ID for capabilities
+    PRODUCTS_PARENT_ID = 937823239; // Replace with your production parent ID for products
     TOP_LEVEL_PARENT_ID = 914072849;
 }
 

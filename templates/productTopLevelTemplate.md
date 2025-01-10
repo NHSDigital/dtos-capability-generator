@@ -22,7 +22,7 @@ The diagram below illustrates the overarching System Context View of all the Pro
 <br/>
 
 <ac:image ac:align="center">
-  <ri:attachment ri:filename="structurizr-dtosSystemContext.png" />
+  <ri:attachment ri:filename="dtosSystemContext.png" />
 </ac:image>
 
 <h2>Products</h2>
