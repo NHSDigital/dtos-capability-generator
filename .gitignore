@@ -1,3 +1,16 @@
 node_modules/
 package-lock.json
 .DS_Store
+# WARNING: Please, DO NOT edit this section of the file! It is maintained in the repository template.
+
+.scannerwork
+*cloc*report*.json
+*sbom*report*.json
+*vulnerabilities*report*.json
+*report*json.zip
+.version
+
+*.code-workspace
+!project.code-workspace
+
+# Please, add your custom content below!

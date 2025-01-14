@@ -1,3 +1,8 @@
+# Repository Template
+
+[![CI/CD Pull Request](https://github.com/nhs-england-tools/repository-template/actions/workflows/cicd-1-pull-request.yaml/badge.svg)](https://github.com/nhs-england-tools/repository-template/actions/workflows/cicd-1-pull-request.yaml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=repository-template&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=repository-template)
+
 # Introduction
 
 This simple javascript library is used to pull data from the capability model and generate confluence pages directly. It does so by pulling data from an archi model and assumes therefore the model exists on your local machine. For reference on how to setup the archi model, refer to these guidelines https://nhsd-confluence.digital.nhs.uk/display/DTS/Archi+Set+Up+for+collaborative+work
@@ -9,7 +14,16 @@ This program is designed to run as a github action from the archi model to gener
 
 However it can be run locally if the archi file is present.
 
-# Running the program
+## Table of Contents
+
+- [Repository Template](#repository-template)
+- [Introduction](#introduction)
+  - [Table of Contents](#table-of-contents)
+  - [Setup](#setup)
+    - [Prerequisites](#prerequisites)
+  - [Licence](#licence)
+
+## Setup
 
 This is a simple javascript file and therefore should run with the latest version of node.
 
@@ -26,11 +40,15 @@ npm install
 node main.js <<YOUR_PASTOKEN>> <<LOCATION_TO_ARCHI>>
 ```
 
-If you wish to run in production mode, then run it with the following parameters
+### Prerequisites
 
-```
-node main.js <<YOUR_PASTOKEN>> <<LOCATION_TO_ARCHI>> --prod
-```
+The following software packages, or their equivalents, are expected to be installed and configured:
 
-BE WARNED THIS WILL OVERWRITE WHATEVER IS IN CONFLUENCE
+- [node](https://www.docker.com/) container runtime or a compatible tool, e.g. [Podman](https://podman.io/),
 
+## Licence
+
+> The [LICENCE.md](./LICENCE.md) file will need to be updated with the correct year and owner
+
+
+Any HTML or Markdown documentation is [© Crown Copyright](https://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/uk-government-licensing-framework/crown-copyright/) and available under the terms of the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
