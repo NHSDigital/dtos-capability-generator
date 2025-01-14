@@ -1,22 +1,19 @@
-# Repository Template
+# Introduction
 
 [![CI/CD Pull Request](https://github.com/nhs-england-tools/repository-template/actions/workflows/cicd-1-pull-request.yaml/badge.svg)](https://github.com/nhs-england-tools/repository-template/actions/workflows/cicd-1-pull-request.yaml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=repository-template&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=repository-template)
 
-# Introduction
+This simple javascript library is used to pull data from the capability model and generate confluence pages directly. It does so by pulling data from an archi model and assumes therefore the model exists on your local machine. For reference on how to setup the archi model, refer to these [guidelines](https://nhsd-confluence.digital.nhs.uk/display/DTS/Archi+Set+Up+for+collaborative+work)
 
-This simple javascript library is used to pull data from the capability model and generate confluence pages directly. It does so by pulling data from an archi model and assumes therefore the model exists on your local machine. For reference on how to setup the archi model, refer to these guidelines https://nhsd-confluence.digital.nhs.uk/display/DTS/Archi+Set+Up+for+collaborative+work
+This program is designed to run as a github action from the Archi model to generate the two outputs below
 
-This program is designed to run as a github action from the archi model to generate the two outputs below
+- One view is from a Capability perspective and will update the pages under [here](https://nhsd-confluence.digital.nhs.uk/display/DTS/Stages)
+- The other view is from a Product perspective and populates the contents under [here](https://nhsd-confluence.digital.nhs.uk/display/DTS/Products)
 
-- One view is from a Capability perspective and will update the pages under here - https://nhsd-confluence.digital.nhs.uk/display/DTS/Stages
-- The other view is from a Product perspective and populates the contents under here - https://nhsd-confluence.digital.nhs.uk/display/DTS/Products
-
-However it can be run locally if the archi file is present.
+However it can be run locally if the Archi file is present.
 
 ## Table of Contents
 
-- [Repository Template](#repository-template)
 - [Introduction](#introduction)
   - [Table of Contents](#table-of-contents)
   - [Setup](#setup)
@@ -27,16 +24,15 @@ However it can be run locally if the archi file is present.
 
 This is a simple javascript file and therefore should run with the latest version of node.
 
-You will need to generate a personal access token for Confluence when running this program and it will need to be supplied at runtime. Instructions on creating a personal access token can be found here - https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html
+You will need to generate a personal access token for Confluence when running this program and it will need to be supplied at runtime. Instructions on creating a personal access token can be found here - <https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html>
 
-By default it will run in test mode, pushing the output to this location on confluence - https://nhsd-confluence.digital.nhs.uk/display/DTS/Page-Generation-Playground
+By default it will run in test mode, pushing the output to this location on confluence - <https://nhsd-confluence.digital.nhs.uk/display/DTS/Page-Generation-Playground>
 
 Assuming you are running this in a terminal console.
 
-```git clone git@github.com:NHSDigital/dtos-capability-generator.git ```
+```git clone git@github.com:NHSDigital/dtos-capability-generator.git```
 
-```
-npm install
+```npm install
 node main.js <<YOUR_PASTOKEN>> <<LOCATION_TO_ARCHI>>
 ```
 
@@ -49,6 +45,5 @@ The following software packages, or their equivalents, are expected to be instal
 ## Licence
 
 > The [LICENCE.md](./LICENCE.md) file will need to be updated with the correct year and owner
-
 
 Any HTML or Markdown documentation is [© Crown Copyright](https://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/uk-government-licensing-framework/crown-copyright/) and available under the terms of the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
