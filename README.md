@@ -3,14 +3,14 @@
 [![CI/CD Pull Request](https://github.com/nhs-england-tools/repository-template/actions/workflows/cicd-1-pull-request.yaml/badge.svg)](https://github.com/nhs-england-tools/repository-template/actions/workflows/cicd-1-pull-request.yaml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=repository-template&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=repository-template)
 
-This simple javascript library is used to pull data from the capability model and generate confluence pages directly. It does so by pulling data from an archi model and assumes therefore the model exists on your local machine. For reference on how to setup the archi model, refer to these [guidelines](https://nhsd-confluence.digital.nhs.uk/display/DTS/Archi+Set+Up+for+collaborative+work)
+This simple javascript library is used to pull data from the capability model and generate confluence pages directly. It does so by pulling data from an ArchiMate model and assumes therefore the model exists on your local machine. For reference on how to setup the ArchiMate model, refer to these [guidelines](https://nhsd-confluence.digital.nhs.uk/display/DTS/Archi+Set+Up+for+collaborative+work)
 
-This program is designed to run as a github action from the Archi model to generate the two outputs below
+This program is designed to run as a GitHub action from the ArchiMate model to generate the two outputs below
 
 - One view is from a Capability perspective and will update the pages under [here](https://nhsd-confluence.digital.nhs.uk/display/DTS/Stages)
 - The other view is from a Product perspective and populates the contents under [here](https://nhsd-confluence.digital.nhs.uk/display/DTS/Products)
 
-However it can be run locally if the Archi file is present.
+However it can be run locally if the ArchiMate file is present.
 
 ## Table of Contents
 
