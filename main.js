@@ -104,10 +104,10 @@ async function loadArchiModelFromFolder(folderPath) {
 
         if (parsed['archimate:ApplicationComponent']) {
             products.push(parsed['archimate:ApplicationComponent']);
-        } 
+        }
         else if (parsed['archimate:Capability']) {
             capabilities.push(parsed['archimate:Capability']);
-        } 
+        }
         else if (parsed['archimate:AssociationRelationship']) {
             relationships.push(parsed['archimate:AssociationRelationship']);
         }
@@ -286,12 +286,12 @@ async function renderTopProductContent(product) {
 
 async function renderProductContent(product) {
     const template = await loadTemplate('templates/productTemplate.md');
-    let tableRows = "";    
-    
+    let tableRows = "";
+
     for (const L1capability of product.capabilities) {
-        tableRows = tableRows + `<tr><td><a href='${L1capability.href}'>${L1capability.name}</a></td></tr>`    
+        tableRows = tableRows + `<tr><td><a href='${L1capability.href}'>${L1capability.name}</a></td></tr>`
     }
-    
+
     return renderTemplate(template, {
         description: product.description,
         tableRows,
@@ -336,7 +336,7 @@ async function createProductHierarchyPages(hierarchy, parentId, renderProduct) {
         await uploadAttachment(item.name, item.containerDiagram);
         const stageContent = await renderProduct(item);
         const pageId = await createOrUpdatePage(item.name, parentId, stageContent);
-        
+
     }
 }
 
@@ -365,7 +365,7 @@ async function createOrUpdatePage(title, parentId, content) {
     const pageTitle = `${PAGE_PREFIX}${title}`;
     const existingPage = await getPageByTitle(pageTitle);
     const url = existingPage
-        ? `${CONFLUENCE_BASE_URL}/rest/api/content/${existingPage.id}`
+        ? `${CONFLUENCE_BASE_URL}/rest/api/content/${existingPage.id}?notifyWatchers=false`
         : `${CONFLUENCE_BASE_URL}/rest/api/content`;
 
     const body = {
@@ -418,7 +418,7 @@ async function uploadAttachment(title,filePath) {
                     },
                 },
             };
-        
+
             console.log(`Checking for existing attachments on page: ${pageTitle}`);
 
             // Step 1: Check for existing attachments with the same name
@@ -440,7 +440,7 @@ async function uploadAttachment(title,filePath) {
                 // Step 2: Delete the existing attachment if found
                 console.log(`Existing attachment found: ${existingAttachment.title}. Deleting it.`);
                 await axios.delete(
-                    `${CONFLUENCE_BASE_URL}/rest/api/content/${existingAttachment.id}`,
+                    `${CONFLUENCE_BASE_URL}/rest/api/content/${existingAttachment.id}?notifyWatchers=false`,
                     {
                         headers: {
                             Authorization: `Bearer ${AUTH_TOKEN}`,
@@ -449,17 +449,17 @@ async function uploadAttachment(title,filePath) {
                 );
                 console.log(`Attachment ${existingAttachment.title} deleted.`);
             }
-        
+
             const fileStream = fs.createReadStream(filePath);
             const formData = new FormData();
             formData.append("file", fileStream, {
                 filename: filePath.split('/').pop(),
                 contentType: "application/octet-stream", // Adjust based on file type
             });
-        
+
             const headers = {
                 ...formData.getHeaders(), // FormData headers
-                'Authorization': `Bearer ${AUTH_TOKEN}`,     
+                'Authorization': `Bearer ${AUTH_TOKEN}`,
                 'X-Atlassian-Token': 'nocheck',
             };
             // Post attachement
@@ -468,10 +468,10 @@ async function uploadAttachment(title,filePath) {
                 formData,
                 {headers}
             );
-        } 
+        }
         catch (error) {
             console.error("Error uploading image:", error);
-            
+
         }
     }
     else{
