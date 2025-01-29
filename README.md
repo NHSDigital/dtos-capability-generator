@@ -32,9 +32,25 @@ Assuming you are running this in a terminal console.
 
 ```git clone git@github.com:NHSDigital/dtos-capability-generator.git```
 
-```npm install
-node main.js <<YOUR_PASTOKEN>> <<LOCATION_TO_ARCHI>>
-```
+Change into the locally cloned directory.
+
+```cd dtos-capability-generator```
+
+Clone the repository containing C4 model diagram images.
+
+```git clone https://github.com/NHSDigital/dtos-solution-architecture.git```
+
+Install node modules.
+
+```npm install```
+
+Update Confluence SANDPIT pages (using content from Archi and C4 model diagram images)
+
+```node main.js <<YOUR_PASTOKEN>> <<LOCATION_TO_ARCHI>>```
+
+Update Confluence PRODUCTION pages (using content from Archi and C4 model diagram images)
+
+```node main.js <<YOUR_PASTOKEN>> <<LOCATION_TO_ARCHI>> --prod```
 
 ### Prerequisites
 
