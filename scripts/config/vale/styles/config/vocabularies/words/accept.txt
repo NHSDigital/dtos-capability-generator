@@ -16,3 +16,4 @@ Syft
 Terraform
 toolchain
 Trufflehog
+Archi
