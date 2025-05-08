@@ -10,4 +10,3 @@
   <ac:parameter ac:name="showLabels">false</ac:parameter>
   <ac:parameter ac:name="showSpace">false</ac:parameter>
 </ac:structured-macro>
-
