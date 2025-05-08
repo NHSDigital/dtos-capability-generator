@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD041 -->
 <h2>Description</h2>
 
 <p>${description}</p>

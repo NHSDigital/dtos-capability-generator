@@ -1,4 +1,4 @@
-<!-- markdownlint-disable MD037 -->
+<!-- markdownlint-disable MD041 -->
 <h2>Description</h2>
 
 ${description}
