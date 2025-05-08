@@ -15,7 +15,6 @@ The introduction to the service blueprint (Target Service Blueprint) covers the 
     <li><b>Single responsibility</b> - Preference for clearly bounded products vs those with unclear scope​</li>
 ​</ul>
 
-
 <h2>Overarching System Context</h2>
 
 The diagram below illustrates the overarching System Context View of all the Products. The Products in isolation do not deliver an end to end screening pathway, only by understanding their role in the wider ecosystem is it possible to deliver a National Screening Platform
