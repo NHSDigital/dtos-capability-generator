@@ -8,6 +8,7 @@ const FormData = require('form-data');
 
 // Default Constants
 let PAGE_PREFIX = "##";
+let LABEL_PREFIX= "tmp_";
 let CAPABILITIES_PARENT_ID = 944175319; // Default parent ID for capabilities
 let PRODUCTS_PARENT_ID = 944175321; // Default parent ID for products
 let TOP_LEVEL_PARENT_ID = 944171792;
@@ -26,6 +27,7 @@ if (isProd) {
     CAPABILITIES_PARENT_ID = 937823228; // Replace with your production parent ID for capabilities
     PRODUCTS_PARENT_ID = 937823239; // Replace with your production parent ID for products
     TOP_LEVEL_PARENT_ID = 914072849;
+    LABEL_PREFIX = "";
 }
 
 // Display Help and Validate Inputs
@@ -76,17 +78,60 @@ async function main() {
     console.log("Transforming Archi model data...");
     const { valueStreamMap, productMap } = await transformArchiData(data);
 
+    //Cleaning up existing pages
+    console.log("Cleaning up Capability Pages");
+    await deleteChildPages(CAPABILITIES_PARENT_ID);
+
     console.log("Creating Value Stream Confluence Pages...");
     await createValueStreamHierarchyPages(valueStreamMap, CAPABILITIES_PARENT_ID, renderStageContent, renderL0Content, renderL1Content);
 
     console.log("Creating Top Level Product Confluence Page...");
     await createProductTopPage(TOP_LEVEL_PARENT_ID);
 
+    //Cleaning up existing pages
+    console.log("Cleaning up Product Pages");
+    await deleteChildPages(PRODUCTS_PARENT_ID);
+
     console.log("Creating Product Confluence Pages...");
     await createProductHierarchyPages(productMap, PRODUCTS_PARENT_ID, renderProductContent);
 
     console.log("Process completed.");
 }
+
+async function deleteChildPages(parentId) {
+    const url = `${CONFLUENCE_BASE_URL}/rest/api/content`;
+    const headers = { Authorization: `Bearer ${AUTH_TOKEN}` };
+
+    try {
+        const response = await axios.get(`${url}/search`, {
+            headers,
+            params: {
+                type: 'page',
+                spaceKey: SPACE_KEY,
+                limit: 100,
+                expand: 'version',
+                cql: `ancestor=${parentId}`
+            }
+        });
+
+        const pages = response.data.results || [];
+
+        if (pages.length === 0) {
+            console.log(`No child pages found under parent ID ${parentId}`);
+            return;
+        }
+
+        for (const page of pages) {
+            console.log(`Deleting page: ${page.title} (ID: ${page.id})`);
+            await axios.delete(`${url}/${page.id}`, { headers });
+        }
+
+        console.log(`Deleted ${pages.length} child pages under parent ID ${parentId}`);
+    } catch (error) {
+        console.error("Error deleting child pages:", error.response?.data || error.message);
+    }
+}
+
 
 // Load Archi Model Data
 async function loadArchiModelFromFolder(folderPath) {
@@ -275,7 +320,8 @@ async function renderL1Content(data) {
     const template = await loadTemplate('templates/l1Template.md');
     return renderTemplate(template, {
         name: data.name,
-        description: data.description
+        description: data.description,
+        capabilitylabel: data.capabilitylabel
     });
 }
 
@@ -289,7 +335,7 @@ async function renderProductContent(product) {
     let tableRows = "";
 
     for (const L1capability of product.capabilities) {
-        tableRows = tableRows + `<tr><td><a href='${L1capability.href}'>${L1capability.name}</a></td></tr>`
+        tableRows = tableRows + `<tr><td><a href='${L1capability.href}'>${L1capability.name}</a></td></tr>`;
     }
 
     return renderTemplate(template, {
@@ -313,6 +359,14 @@ async function createValueStreamHierarchyPages(hierarchy, parentId, renderStage,
             const l0PageId = await createOrUpdatePage(capability.name, pageId, l0Content);
 
             for (const child of capability.children || []) {
+
+                child.capabilitylabel = LABEL_PREFIX + child.name
+                          .toLowerCase()
+                          .replace(/[.\s]+/g, '_')      // Replace dots and spaces with underscores
+                          .replace(/[()]/g, '')         // Remove parentheses
+                          .replace(/[^a-z0-9_\-.]/g, '')// Strip any remaining invalid characters
+                          .slice(0, 255)
+
                 const l1Content = await renderL1(child);
                 await createOrUpdatePage(child.name, l0PageId, l1Content);
             }
@@ -332,11 +386,43 @@ async function createProductHierarchyPages(hierarchy, parentId, renderProduct) {
     for (const [key, item] of Object.entries(hierarchy)) {
         const stringWithSpaces = item.name;
         const titleWithoutSpaces = stringWithSpaces.replace(/\s+/g, '');
+        item.productLabel = titleWithoutSpaces;
         item.containerDiagram = `dtos-solution-architecture/images/${titleWithoutSpaces}.png`;
-        await uploadAttachment(item.name, item.containerDiagram);
         const stageContent = await renderProduct(item);
         const pageId = await createOrUpdatePage(item.name, parentId, stageContent);
+        await uploadAttachment(item.name, item.containerDiagram);
+        if (item.capabilities?.length) {
+          const labelNames = item.capabilities.map(c => c.name);
+          await setPageLabels(pageId, labelNames);
+        }
+    }
+}
 
+async function setPageLabels(pageId, labels) {
+    const url = `${CONFLUENCE_BASE_URL}/rest/api/content/${pageId}/label`;
+
+    const transformedLabels = labels.map(label => ({
+        "prefix": "global",
+        name: LABEL_PREFIX + label
+          .toLowerCase()
+          .replace(/[.\s]+/g, '_')      // Replace dots and spaces with underscores
+          .replace(/[()]/g, '')         // Remove parentheses
+          .replace(/[^a-z0-9_\-.]/g, '')// Strip any remaining invalid characters
+          .slice(0, 255)
+    }));
+
+    const body = transformedLabels;
+    const headers = {
+      'Authorization': `Bearer ${AUTH_TOKEN}`,
+      'Content-Type': 'application/json'
+    };
+
+    try {
+        await axios.post(url, body, {headers});
+
+        console.log(`Labels set on page ${pageId}`);
+    } catch (error) {
+        console.error(`Error setting labels for page ${pageId}:`, error.message);
     }
 }
 
