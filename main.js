@@ -117,14 +117,36 @@ async function deleteChildPages(parentId) {
         const pages = response.data.results || [];
 
         if (pages.length === 0) {
-            console.log(`No child pages found under parent ID ${parentId}`);
-            return;
-        }
+          console.log(`No child pages found under parent ID ${parentId}`);
+          return;
+      }
 
-        for (const page of pages) {
-            console.log(`Deleting page: ${page.title} (ID: ${page.id})`);
-            await axios.delete(`${url}/${page.id}`, { headers });
-        }
+      console.log(`The following ${pages.length} pages will be deleted:\n`);
+      pages.forEach(page => {
+          console.log(`- ${page.title} (ID: ${page.id})`);
+      });
+
+      const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+      });
+
+      const confirm = await new Promise(resolve => {
+          rl.question('\nIt is generally better to delete all the confluence pages before recreating them\nDo you want to proceed with deleting these pages? (yes/no): ', answer => {
+              rl.close();
+              resolve(answer.trim().toLowerCase());
+          });
+      });
+
+      if (confirm !== 'yes') {
+          console.log('Deletion cancelled.');
+          return;
+      }
+
+      for (const page of pages) {
+          console.log(`Deleting: ${page.title} (ID: ${page.id})`);
+          await axios.delete(`${url}/${page.id}`, { headers });
+      }
 
         console.log(`Deleted ${pages.length} child pages under parent ID ${parentId}`);
     } catch (error) {
