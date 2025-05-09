@@ -25,6 +25,16 @@ The diagram below illustrates the overarching System Context View of all the Pro
   <ri:attachment ri:filename="dtosSystemContext.png" />
 </ac:image>
 
+<br/>
+
+The overarching system context is large and does look complex, therefore for the purposes of improving consumption we have a more product centric context view below
+
+<h2>Cohort Manager</h2>
+
+<ac:image ac:align="center">
+  <ri:attachment ri:filename="cohortManagerSystemContext.png" />
+</ac:image>
+
 <h2>Products</h2>
 
 <ac:structured-macro ac:name="children" />
