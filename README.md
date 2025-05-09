@@ -17,6 +17,7 @@ However it can be run locally if the ArchiMate file is present.
 - [Introduction](#introduction)
   - [Table of Contents](#table-of-contents)
   - [Setup](#setup)
+    - [Page Deletion](#page-deletion)
     - [Prerequisites](#prerequisites)
   - [Licence](#licence)
 
@@ -51,6 +52,14 @@ Update Confluence SANDPIT pages (using content from Archi and C4 model diagram i
 Update Confluence PRODUCTION pages (using content from Archi and C4 model diagram images)
 
 ```node main.js <<YOUR_PASTOKEN>> <<LOCATION_TO_ARCHI>> --prod```
+
+### Page Deletion
+
+It became clear that continually updating the pages resulted in issues around cleanup and specifically around unpublished changes. The program now deletes all of the sub pages under both capabilities and products.
+
+But it will prompt you if you want to delete and it outputs the pages due to be deleted.
+
+As someone that didn't do this.....PLEASE CHECK THE FILES TO BE DELETED
 
 ### Prerequisites
 
