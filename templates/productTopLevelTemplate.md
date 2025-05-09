@@ -1,4 +1,5 @@
 <!-- markdownlint-disable MD041 -->
+<!-- markdownlint-disable MD034 -->
 <h2>Test-Products</h2>
 
 <p>Products allow a group of <a href="https://nhsd-confluence.digital.nhs.uk/display/DTS/Users+and+Personas">users</a> to perform certain actions to achieve a defined output. They contain a bounded and grouped set of features which an organisation can easily communicate and which 'make sense' internally and to its users.
@@ -22,7 +23,7 @@ The diagram below illustrates the overarching System Context View of all the Pro
 <br/>
 
 <ac:image ac:align="center">
-  <ri:attachment ri:filename="dtosSystemContext.png" />
+  <ri:url ri:value="https://nhsdigital.github.io/dtos-solution-architecture/c4/dtosSystemContext.png" />
 </ac:image>
 
 <br/>
@@ -32,7 +33,7 @@ The overarching system context is large and does look complex, therefore for the
 <h2>Cohort Manager</h2>
 
 <ac:image ac:align="center">
-  <ri:attachment ri:filename="cohortManagerSystemContext.png" />
+  <ri:url ri:value="https://nhsdigital.github.io/dtos-solution-architecture/c4/cohortManagerSystemContext.png" />
 </ac:image>
 
 <h2>Products</h2>

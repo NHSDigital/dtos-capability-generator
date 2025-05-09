@@ -399,9 +399,6 @@ async function createValueStreamHierarchyPages(hierarchy, parentId, renderStage,
 async function createProductTopPage(parentId) {
     const content = await renderTopProductContent();
     const pageId = await createOrUpdatePage("Products", parentId, content);
-    //For the top page, going to upload the high level context diagram
-    await uploadAttachment("Products", "dtos-solution-architecture/images/dtosSystemContext.png")
-    await uploadAttachment("Products", "dtos-solution-architecture/images/cohortManagerSystemContext.png")
 }
 
 
@@ -410,10 +407,9 @@ async function createProductHierarchyPages(hierarchy, parentId, renderProduct) {
         const stringWithSpaces = item.name;
         const titleWithoutSpaces = stringWithSpaces.replace(/\s+/g, '');
         item.productLabel = titleWithoutSpaces;
-        item.containerDiagram = `dtos-solution-architecture/images/${titleWithoutSpaces}.png`;
+        item.containerDiagram = `${titleWithoutSpaces}.png`;
         const stageContent = await renderProduct(item);
         const pageId = await createOrUpdatePage(item.name, parentId, stageContent);
-        await uploadAttachment(item.name, item.containerDiagram);
         if (item.capabilities?.length) {
           const labelNames = item.capabilities.map(c => c.name);
           await setPageLabels(pageId, labelNames);
