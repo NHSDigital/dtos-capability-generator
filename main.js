@@ -401,6 +401,7 @@ async function createProductTopPage(parentId) {
     const pageId = await createOrUpdatePage("Products", parentId, content);
     //For the top page, going to upload the high level context diagram
     await uploadAttachment("Products", "dtos-solution-architecture/images/dtosSystemContext.png")
+    await uploadAttachment("Products", "dtos-solution-architecture/images/cohortManagerSystemContext.png")
 }
 
 
