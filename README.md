@@ -9,6 +9,7 @@ This program is designed to run as a GitHub action from the ArchiMate model to g
 
 - One view is from a Capability perspective and will update the pages under [here](https://nhsd-confluence.digital.nhs.uk/display/DTS/Stages)
 - The other view is from a Product perspective and populates the contents under [here](https://nhsd-confluence.digital.nhs.uk/display/DTS/Products)
+- The C4 diagrams now referenced in the product pages are referencing those images published by the dtos-solution-architecture project
 
 However it can be run locally if the ArchiMate file is present.
 
@@ -36,10 +37,6 @@ Assuming you are running this in a terminal console.
 Change into the locally cloned directory.
 
 ```cd dtos-capability-generator```
-
-Clone the repository containing C4 model diagram images.
-
-```git clone https://github.com/NHSDigital/dtos-solution-architecture.git```
 
 Install node modules.
 
