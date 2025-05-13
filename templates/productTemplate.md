@@ -19,7 +19,7 @@ ${description}
 
 <h2>Product Container Diagram</h2>
 <ac:image ac:align="center">
-  <ri:url ri:value="https://nhsdigital.github.io/dtos-solution-architecture/c4/${containerDiagram}" />
+  <ri:url ri:value="https://nhsdigital.github.io/dtos-solution-architecture/eventcatalog/c4/${containerDiagram}" />
 </ac:image>
 
 <h2>Product Data Domain</h2>
