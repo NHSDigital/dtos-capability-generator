@@ -236,7 +236,7 @@ async function transformArchiData(data) {
                 description: capability.$.documentation || '',
                 input: extractProperties(capability.properties, 'Input'),
                 output: extractProperties(capability.properties, 'Output'),
-                href: page && page._links ? page._links.webui : null,
+                href: page && page._links ? convertToDisplayUrl(page._links.webui) : null,
             };
         })
     );
@@ -469,6 +469,7 @@ async function getPageByTitle(title) {
 async function createOrUpdatePage(title, parentId, content) {
     const pageTitle = `${PAGE_PREFIX}${title}`;
     const existingPage = await getPageByTitle(pageTitle);
+
     const url = existingPage
         ? `${CONFLUENCE_BASE_URL}/rest/api/content/${existingPage.id}?notifyWatchers=false`
         : `${CONFLUENCE_BASE_URL}/rest/api/content`;
@@ -501,6 +502,16 @@ async function createOrUpdatePage(title, parentId, content) {
         console.log(error);
         console.error(`Error ${existingPage ? 'updating' : 'creating'} page "${pageTitle}":`, error.message);
     }
+}
+
+function convertToDisplayUrl(webui) {
+  const match = webui.match(/^\/spaces\/([^/]+)\/pages\/\d+\/(.+)$/);
+  if (!match) return null;
+
+  const spaceKey = match[1];
+  const pageTitle = match[2];
+
+  return `/display/${spaceKey}/${pageTitle}`;
 }
 
 async function uploadAttachment(title,filePath) {
