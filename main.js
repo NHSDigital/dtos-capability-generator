@@ -5,6 +5,7 @@ const path = require('path');
 const xml2js = require('xml2js');
 const readline = require('readline');
 const FormData = require('form-data');
+const { execSync } = require('child_process');
 
 // Default Constants
 let PAGE_PREFIX = "##";
@@ -19,7 +20,6 @@ const SPACE_KEY = 'DTS';
 // Parse Command-Line Arguments
 const isProd = process.argv.includes('--prod'); // Check for the --prod flag
 const AUTH_TOKEN = process.argv[2]; // Get the token from the second argument
-const ARCHI_LOCATION = process.argv[3]; // Get the Archi location from the third argument
 
 // Update Constants for Production
 if (isProd) {
@@ -31,9 +31,9 @@ if (isProd) {
 }
 
 // Display Help and Validate Inputs
-if (!AUTH_TOKEN || !ARCHI_LOCATION || AUTH_TOKEN === '--help') {
+if (!AUTH_TOKEN || AUTH_TOKEN === '--help') {
     console.log(`
-Usage: node main.js <PERSONAL_ACCESS_TOKEN> <ARCHI_LOCATION> [--prod]
+Usage: node main.js <PERSONAL_ACCESS_TOKEN> [<ARCHI_LOCATION>] [--prod]
 
 Description:
   This script generates Confluence pages based on Archi XML data.
@@ -43,6 +43,7 @@ Options:
   --prod    Run the script in production mode, which uses production settings.
 
 Example:
+  node main.js YOUR_PERSONAL_ACCESS_TOKEN
   node main.js YOUR_PERSONAL_ACCESS_TOKEN /path/to/archi/repository
   node main.js YOUR_PERSONAL_ACCESS_TOKEN /path/to/archi/repository --prod
     `);
@@ -72,8 +73,9 @@ rl.question(
 // Main Function
 async function main() {
     console.log(`Running in ${isProd ? "production" : "test"} mode...`);
-    console.log(`Loading Archi model data from: ${ARCHI_LOCATION}`);
-    const data = await loadArchiModelFromFolder(ARCHI_LOCATION);
+    const modelPath = getArchiModelPath(process.argv[3]);
+    console.log(`Loading Archi model data from: ${modelPath}`);
+    const data = await loadArchiModelFromFolder(modelPath);
 
     console.log("Transforming Archi model data...");
     const { valueStreamMap, productMap } = await transformArchiData(data);
@@ -229,14 +231,14 @@ async function transformArchiData(data) {
     console.debug("About to transform capabilities");
     const transformedCapabilities = await Promise.all(
         capabilities.map(async (capability) => {
-            const page = await getPageByTitle(capability.$.name);
+            const formattedTitle = capability.$.name.replace(/ /g, '+');
             return {
                 id: capability.$.id,
                 name: capability.$.name,
                 description: capability.$.documentation || '',
                 input: extractProperties(capability.properties, 'Input'),
                 output: extractProperties(capability.properties, 'Output'),
-                href: page && page._links ? convertToDisplayUrl(page._links.webui) : null,
+                href: `/display/${SPACE_KEY}/${formattedTitle}`,
             };
         })
     );
@@ -593,4 +595,24 @@ async function uploadAttachment(title,filePath) {
     else{
         console.log('Unable to upload attachment because page doesnt yet exist, re-run again');
     }
+}
+
+function getArchiModelPath(providedPath) {
+  const repoUrl = 'https://github.com/NHSDigital/dtos-architecture-blueprint.git';
+  const localClonePath = path.resolve('./archi-model');
+
+  if (providedPath && fs.existsSync(providedPath)) {
+    console.log(`✅ Using provided Archi model path: ${providedPath}`);
+    return providedPath;
+  }
+
+  if (!fs.existsSync(localClonePath)) {
+    console.log('📥 Cloning Archi model from GitHub...');
+    execSync(`git clone ${repoUrl} ${localClonePath}`, { stdio: 'inherit' });
+  } else {
+    console.log('🔄 Pulling latest Archi model from GitHub...');
+    execSync(`git -C ${localClonePath} pull`, { stdio: 'inherit' });
+  }
+
+  return localClonePath;
 }
